@@ -34,7 +34,7 @@ td.dialog-cell { width:85%; text-align:center; }
 <label>فایل‌های صوتی (یکجا):</label>
 <input id="audioFiles" type="file" accept="audio/*" multiple class="form-control form-control-sm">
 </div>
-<label>فایل اکسل:</label>
+<label>فایل اکسل (اختیاری برای جایگزینی):</label>
 <input id="excelFile" type="file" accept=".xlsx,.xls" class="form-control form-control-sm">
 </div>
 
@@ -59,7 +59,6 @@ const tableContainer=document.getElementById('tableContainer');
 const sheetTitle=document.getElementById('sheetTitle');
 const toastEl=document.getElementById('toast');
 const sidebar=document.getElementById('sidebar');
-const toggleBtn=document.getElementById('toggleSidebar');
 const main=document.getElementById('main');
 const bsToast=new bootstrap.Toast(toastEl);
 
