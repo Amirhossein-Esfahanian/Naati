@@ -34,8 +34,6 @@ td.dialog-cell { width:85%; text-align:center; }
 <label>فایل‌های صوتی (یکجا):</label>
 <input id="audioFiles" type="file" accept="audio/*" multiple class="form-control form-control-sm">
 </div>
-<label>فایل اکسل (اختیاری برای جایگزینی):</label>
-<input id="excelFile" type="file" accept=".xlsx,.xls" class="form-control form-control-sm">
 </div>
 
 <button id="toggleSidebar" onclick="toggleSidebar()">☰</button>
@@ -50,16 +48,14 @@ td.dialog-cell { width:85%; text-align:center; }
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-let workbook=null,audioFilesSorted=[],currentAudio=null,currentBtn=null,mediaRecorder=null,recordedChunks=[],mediaStream=null;
+let workbook=null,currentAudio=null,currentBtn=null,mediaRecorder=null,recordedChunks=[],mediaStream=null;
 const sheetList=document.getElementById('sheetList');
-const excelInput=document.getElementById('excelFile');
 const audioInput=document.getElementById('audioFiles');
 const audioInputContainer=document.getElementById('audioInputContainer');
 const tableContainer=document.getElementById('tableContainer');
 const sheetTitle=document.getElementById('sheetTitle');
 const toastEl=document.getElementById('toast');
 const sidebar=document.getElementById('sidebar');
-const main=document.getElementById('main');
 const bsToast=new bootstrap.Toast(toastEl);
 
 function showToast(msg){ toastEl.textContent=msg; bsToast.show(); }
@@ -74,7 +70,7 @@ async function loadDefaultExcel() {
       const firstSheet = document.createElement('div');
       firstSheet.className='sheet-item';
       firstSheet.textContent = workbook.SheetNames[0];
-      sheetList.prepend(firstSheet);
+      sheetList.appendChild(firstSheet);
       selectSheet(workbook.SheetNames[0], firstSheet);
     }
   } catch(err) {
@@ -82,14 +78,6 @@ async function loadDefaultExcel() {
     sheetList.textContent = '— فایل پیش‌فرض پیدا نشد —';
   }
 }
-
-// بارگذاری فایل توسط کاربر
-excelInput.addEventListener('change', async e=>{
-  const f=e.target.files[0]; if(!f) return;
-  const data=await f.arrayBuffer();
-  workbook=XLSX.read(data,{type:'array'});
-  renderSheetList();
-});
 
 audioInput.addEventListener('change', e=>{
   audioFilesSorted=[...e.target.files].sort((a,b)=>a.name.localeCompare(b.name));
@@ -135,10 +123,8 @@ function loadSheet(name){
       if(json[j].length>0) combinedText+=`<span>${json[j].join(' ')}</span>`;
     }
     html+=`<td class="controls-cell">
-<span class="recording-indicator" id="rec_${idx}"></span>
 <button class="btn btn-primary btn-fixed mb-1" onclick="toggleAudio(${idx},this)">▶ پخش</button>
 <button class="btn btn-secondary btn-fixed mb-1" onclick="toggleText(${idx})">نمایش/مخفی</button>
-<button class="btn btn-success btn-fixed mb-1" onclick="recordAudio(${idx})">🎤 ضبط</button>
 <audio id="myAudio_${idx}" controls class="w-100 mt-1" style="display:none"></audio>
 </td>`;
     html+=`<td class="dialog-cell" id="dialog_${idx}" style="display:none">${combinedText}</td>`;
@@ -154,8 +140,7 @@ function toggleAudio(index,btn){
     if(currentBtn) currentBtn.textContent='▶ پخش'; 
     if(currentAudio.datasetIndex==index){ currentAudio=null;currentBtn=null; return; } 
   }
-  if(!audioFilesSorted[index]){ alert('فایل صوتی برای این دو ردیف وجود ندارد'); return; }
-  currentAudio=new Audio(URL.createObjectURL(audioFilesSorted[index]));
+  currentAudio=new Audio(`audio${index+1}.mp3`);
   currentAudio.datasetIndex=index; currentBtn=btn; btn.textContent='⏹ توقف'; currentAudio.play();
   currentAudio.onended=()=>{ btn.textContent='▶ پخش'; currentAudio=null;currentBtn=null; };
 }
@@ -163,35 +148,6 @@ function toggleAudio(index,btn){
 function toggleText(index){
   const el=document.getElementById(`dialog_${index}`);
   el.style.display=(el.style.display==='none'||el.style.display==='')?'block':'none';
-}
-
-async function initMedia(){
-  if(!mediaStream){
-    try{ mediaStream=await navigator.mediaDevices.getUserMedia({audio:true}); showToast('میکروفون آماده است'); }
-    catch(err){ alert('اجازه دسترسی به میکروفون داده نشده'); }
-  }
-  return mediaStream;
-}
-
-function recordAudio(index){
-  const audioEl=document.getElementById(`myAudio_${index}`);
-  const indicator=document.getElementById(`rec_${index}`);
-  initMedia().then(stream=>{
-    if(!stream) return;
-    if(!mediaRecorder || mediaRecorder.state==='inactive'){
-      mediaRecorder=new MediaRecorder(stream); recordedChunks=[];
-      mediaRecorder.ondataavailable=e=>recordedChunks.push(e.data);
-      mediaRecorder.onstop=()=>{
-        const blob=new Blob(recordedChunks,{type:'audio/webm'});
-        audioEl.src=URL.createObjectURL(blob);
-        audioEl.style.display='block'; recordedChunks=[];
-        indicator.style.display='none';
-      };
-      mediaRecorder.start();
-      indicator.style.display='inline-block';
-      showToast('در حال ضبط...');
-    } else if(mediaRecorder.state==='recording'){ mediaRecorder.stop(); mediaRecorder=null; }
-  });
 }
 
 function toggleSidebar(){
